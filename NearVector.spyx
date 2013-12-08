@@ -1,0 +1,40 @@
+#clang C++
+
+""" Sage bindings for NTL's NearVector function for finding a close vector to a lattice. """
+
+# TODO: use vec_ZZ for arguments x and return a vec_ZZ for y, or at least use Sage-vectors for the vectors, rather than the hackiness with matrices
+
+# TODO: Why doesn't this just work using #include "ext/interrupt.pxi"?
+cdef extern from 'interrupt.h':
+    int sig_on() except 0
+    void sig_off()
+
+from sage.libs.ntl.ntl_mat_ZZ cimport ntl_mat_ZZ
+
+cdef extern from "lattice_wrap.cpp":
+  ctypedef struct mat_ZZ_c "struct mat_ZZ":
+    pass
+  ctypedef struct vec_ZZ_c "struct vec_ZZ":
+    pass
+
+
+cdef extern from "lattice_wrap.cpp":
+  cdef void NearVectorWrap(mat_ZZ_c* x, const mat_ZZ_c* A, const mat_ZZ_c* y)
+
+def NearVector(ntl_mat_ZZ x, ntl_mat_ZZ A, ntl_mat_ZZ y):
+  """ Find a vector near y in the lattice spanned by A. This vector is returned in x. This uses NTL's NearVector
+      function, which uses Babai's closest plane algorithm.
+      The matrix A should already be LLL-reduced. The arguments should all be ntl.mat_ZZs of appropriate sizes.
+      EXAMPLE:
+      A = ntl.mat_ZZ (3, 3, [1,2,3, 3,0,-3, 3,-7,3])
+      y = ntl.mat_ZZ (1, 3, [10, 6, 5])
+      x = ntl.mat_ZZ (1, 3, [0]*3)
+      A.LLL()
+      NearVector(x, A, y)
+      x
+  """
+
+  sig_on()
+  NearVectorWrap(&x.x, &A.x, &y.x)
+  sig_off()
+
